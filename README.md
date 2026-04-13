@@ -1,4 +1,4 @@
-# SQL Injection Authentication Bypass — OWASP Juice Shop
+# SQL Injection Authentication Bypass OWASP Juice Shop
 
 **Target:** OWASP Juice Shop `http://192.168.178.80:3000`  
 **Vulnerability:** SQL Injection (CWE-89)  
@@ -10,7 +10,7 @@
 
 ## Overview
 
-OWASP Juice Shop is an intentionally vulnerable web application designed for security training. The login endpoint at `/rest/user/login` is vulnerable to SQL Injection, allowing an unauthenticated attacker to bypass authentication entirely and gain access to any user account — including the administrator account — without knowing a valid password.
+OWASP Juice Shop is an intentionally vulnerable web application designed for security training. The login endpoint at `/rest/user/login` is vulnerable to SQL Injection, allowing an unauthenticated attacker to bypass authentication entirely and gain access to any user account including the administrator account without knowing a valid password.
 
 ---
 
@@ -44,7 +44,7 @@ Since user input is concatenated directly into the query without parameterizatio
 
 This payload:
 1. Closes the email string with `'`
-2. Appends `OR 1=1` — always evaluates to true, matching every row
+2. Appends `OR 1=1` always evaluates to true, matching every row
 3. Comments out the remainder of the query with `--`, neutralizing the password check
 
 The resulting query becomes:
@@ -57,13 +57,13 @@ Which is effectively:
 SELECT * FROM Users WHERE email = '' OR 1=1
 ```
 
-The database returns the first matching row — which is the admin account.
+The database returns the first matching row which is the admin account.
 
 ---
 
 ## Exploitation
 
-### Step 1 — Verify normal login fails
+### Step 1 Verify normal login fails
 
 A login attempt with `test@test.com` / `test123` returns an error, confirming the endpoint validates credentials.
 
@@ -71,7 +71,7 @@ A login attempt with `test@test.com` / `test123` returns an error, confirming th
 
 ---
 
-### Step 2 — Inject the payload
+### Step 2 Inject the payload
 
 The following HTTP request was intercepted via Burp Suite with the SQL injection payload in the `email` field:
 
@@ -91,7 +91,7 @@ Content-Length: 40
 
 ---
 
-### Step 3 — Observe the response
+### Step 3 Observe the response
 
 The server responds with HTTP 200 and returns a valid JWT authentication token along with the admin email address:
 
@@ -105,13 +105,13 @@ The server responds with HTTP 200 and returns a valid JWT authentication token a
 }
 ```
 
-`bid: 1` and `umail: admin@juice-sh.op` confirm that the first user in the database — the administrator — was returned.
+`bid: 1` and `umail: admin@juice-sh.op` confirm that the first user in the database the administrator was returned.
 
 ![Burp Response](images/04_sqli_response.png)
 
 ---
 
-### Step 4 — Access the admin panel
+### Step 4 Access the admin panel
 
 With the session established, navigating to `/#/administration` reveals the full admin panel including all registered user accounts.
 
@@ -166,7 +166,7 @@ if (!emailRegex.test(email)) return res.status(400).send("Invalid input");
 
 ### 4. Least Privilege
 
-The database user used by the application should have read-only access to required tables — not `DROP`, `INSERT`, or schema-level permissions.
+The database user used by the application should have read-only access to required tables not `DROP`, `INSERT`, or schema-level permissions.
 
 ### 5. Error Handling
 
@@ -176,7 +176,7 @@ Avoid leaking database error messages to the client. Log errors server-side and 
 
 ## Conclusion
 
-The OWASP Juice Shop login endpoint is critically vulnerable to SQL Injection due to unsanitized user input being directly concatenated into SQL queries. Using the payload `' OR 1=1--`, an unauthenticated attacker can bypass authentication and gain full administrative access in a single request. The fix requires parameterized queries — all other controls are secondary. This vulnerability represents a textbook example of OWASP Top 10 **A03:2021 – Injection**.
+The OWASP Juice Shop login endpoint is critically vulnerable to SQL Injection due to unsanitized user input being directly concatenated into SQL queries. Using the payload `' OR 1=1--`, an unauthenticated attacker can bypass authentication and gain full administrative access in a single request. The fix requires parameterized queries all other controls are secondary. This vulnerability represents a textbook example of OWASP Top 10 **A03:2021 – Injection**.
 
 ---
 
